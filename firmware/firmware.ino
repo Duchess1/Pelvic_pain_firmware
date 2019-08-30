@@ -1,3 +1,5 @@
+//IASP - number one pain research in the world 
+
 #define OUTPUT_PIN 9
 #define ENABLED HIGH
 
@@ -25,13 +27,17 @@ void setup() {
   pinMode(OUTPUT_PIN,OUTPUT); 
   pinMode(MODE_BUTTON,OUTPUT); 
   pinMode(HZ_BUTTON,OUTPUT); 
-
+  pinMode(6,OUTPUT); 
+  pinMode(5,OUTPUT); 
+  
   digitalWrite(12, HIGH); 
   digitalWrite(11, HIGH); 
   digitalWrite(10, HIGH); 
   digitalWrite(OUTPUT_PIN, HIGH); 
   digitalWrite(MODE_BUTTON, HIGH); 
   digitalWrite(HZ_BUTTON, HIGH); 
+  digitalWrite(6, HIGH); 
+  digitalWrite(5, HIGH); 
 
   off();
    
@@ -74,23 +80,50 @@ void deepMode(int enabled) {
 }
 
 void lowPower(void) {
-  digitalWrite(12, LOW); 
+
+  Serial.println("Low power"); 
+  digitalWrite(12, HIGH); 
   digitalWrite(11, HIGH); 
-  digitalWrite(10, HIGH); 
   digitalWrite(OUTPUT_PIN, LOW); 
+  backLowPower();
 }
 void mediumPower(void) {
-  digitalWrite(12, LOW); 
+
+  Serial.println("Medium power"); 
+  digitalWrite(12, HIGH); 
   digitalWrite(11, LOW); 
-  digitalWrite(10, HIGH); 
   digitalWrite(OUTPUT_PIN, LOW); 
+  backMediumPower();
 }
 
 void highPower(void) {
+
+  Serial.println("High power"); 
   digitalWrite(12, LOW); 
   digitalWrite(11, LOW); 
-  digitalWrite(10, LOW); 
   digitalWrite(OUTPUT_PIN, LOW); 
+  backHighPower(); 
+}
+
+void backLowPower(void) {
+
+  Serial.println("Back low power"); 
+  digitalWrite(5, HIGH); 
+  digitalWrite(6, HIGH);
+}
+
+void backMediumPower(void) {
+
+  Serial.println("Back medium power"); 
+  digitalWrite(5, LOW); 
+  digitalWrite(6, HIGH); 
+}
+
+void backHighPower(void) {
+
+  Serial.println("Back high power"); 
+  digitalWrite(5, LOW); 
+  digitalWrite(6, LOW); 
 }
 
 void off(void) { 
@@ -98,6 +131,8 @@ void off(void) {
   if (DEBUG) {
     Serial.println("Off"); 
   }
+  lowPower(); 
+  backLowPower();
   digitalWrite(OUTPUT_PIN, HIGH); 
   deepMode(LOW); 
 }
@@ -180,6 +215,83 @@ void effectTearing(void) {
 }
 
 //========================================
+//      effectTwisting 
+//  - Wringing out of stomach 
+//  - Twisting abdomen
+//  - Pins and needles 
+//  - Intense pressure
+//  - 
+//========================================
+void effectTwisting(void) {
+
+  if (DEBUG) {
+    Serial.println("Tearing"); 
+  }
+  
+  off(); 
+  switchMode(SCRAPING); 
+
+  //Just back
+  backHighPower();
+  deepMode(HIGH); 
+  delay(10000); 
+
+  //Front and back
+  mediumPower(); 
+  delay(10000);
+
+  //Just back
+  off(); 
+  backHighPower();
+  deepMode(HIGH); 
+  delay(10000);
+
+  // Just front 
+  backLowPower(); 
+  highPower();
+  delay(10000);  
+}
+
+//========================================
+//          effectCattleProd
+//   
+//========================================
+void effectCattleProd(void) {
+
+  if (DEBUG) {
+    Serial.println("Cattle prod"); 
+  }
+  
+  off(); 
+  switchMode(HAMMERING); 
+  deepMode(LOW); 
+
+ // Just front 
+  backLowPower(); 
+  highPower();
+  delay(2000);  
+
+  // off
+  off(); 
+  delay(5000); 
+  
+  // Just back
+  backHighPower();
+  delay(2000); 
+
+  // off
+  off(); 
+  delay(5000); 
+
+  //Front and back
+  highPower(); 
+  backHighPower(); 
+  delay(5000);
+
+  off();
+}
+
+//========================================
 //          effectPeriodPain
 //   High power accupuncture
 //========================================
@@ -253,31 +365,56 @@ void effectDeepScraping(void) {
   off(); 
 }
 
-void loop() {
-//
-  //effectDeepStab(); 
-//  effectTearing(); 
-//  
-
-    //effectTearing(); 
-
-  //effectPeriodPain();
-//
-//  effectBackground();  
-//  while(1);
-//
-//  effectStab(); 
-//  off(); 
-//  delay(2000); 
-//  effectDeepStab(); 
-  //effectDeepScraping(); 
-//  off(); 
-//  highPower(); 
-
+void effectSandwichPressure(void) {
+  if (DEBUG) {
+    Serial.println("Tearing"); 
+  }
   
-//  while(1);
+  off(); 
+  switchMode(NAPRAPATHY); 
+
+  backHighPower(); 
+  highPower(); 
+  delay(10000); 
+
+  deepMode(HIGH); 
+  delay(7000); 
+
+  backMediumPower(); 
+  mediumPower();
+  delay(5000); 
+
+  backHighPower(); 
+  highPower();
+  deepMode(HIGH); 
+  delay(10000); 
+}
+
+void effectBackHammering(void) {
+
+  if (DEBUG) {
+    Serial.println("Back hammering"); 
+  }
+  off();
+  
+  backLowPower(); 
+  deepMode(HIGH); 
+  switchMode(HAMMERING); 
+  backHighPower(); 
+  delay(3750); 
+}
+
+void loop() {
+
   while(Serial.available() == 0); 
   Serial.println("Start"); 
+
+  effectSandwichPressure(); 
+  off(); 
+
+  
+  Serial.println("Done"); 
+  while(1); 
   
   // Stab 3 times - 10.5 seconds
   for (int i = 0; i < 3; i++) {
@@ -297,7 +434,6 @@ void loop() {
   //Tearing for 20.5 seconds
   effectTearing(); 
  
-  //Total 10.5 + 41 + 20.5 + 3.5 + 20.5 = 96 seconds (1.5 min)
   off(); 
   Serial.println("Done"); 
   while(1); 
