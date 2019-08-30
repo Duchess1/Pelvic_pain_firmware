@@ -1,6 +1,13 @@
 //IASP - number one pain research in the world 
 
-#define OUTPUT_PIN 9
+
+#define PELVIS_PIN_ONE 12
+#define PELVIS_PIN_TWO 11
+#define PELVIS_OUTPUT_PIN 10
+#define BACK_PIN_ONE 8
+#define BACK_PIN_TWO 7
+#define BACK_OUTPUT_PIN 6
+
 #define ENABLED HIGH
 
 //TENS Modes
@@ -12,8 +19,8 @@
 #define MASSAGE     5
 
 //TENS BUTTONS
-#define MODE_BUTTON     8
-#define HZ_BUTTON       7
+#define MODE_BUTTON     9
+#define HZ_BUTTON       5
 #define BUTTON_DELAY 120 
 
 #define DEBUG 1
@@ -21,23 +28,25 @@
 void setup() {
   Serial.begin(115200);
   
-  pinMode(12,OUTPUT); 
-  pinMode(11,OUTPUT); 
+  pinMode(PELVIS_PIN_ONE,OUTPUT); 
+  pinMode(PELVIS_PIN_TWO,OUTPUT); 
   pinMode(10,OUTPUT); 
-  pinMode(OUTPUT_PIN,OUTPUT); 
+  pinMode(PELVIS_OUTPUT_PIN,OUTPUT); 
   pinMode(MODE_BUTTON,OUTPUT); 
   pinMode(HZ_BUTTON,OUTPUT); 
-  pinMode(6,OUTPUT); 
-  pinMode(5,OUTPUT); 
-  
-  digitalWrite(12, HIGH); 
-  digitalWrite(11, HIGH); 
-  digitalWrite(10, HIGH); 
-  digitalWrite(OUTPUT_PIN, HIGH); 
+  pinMode(BACK_PIN_TWO,OUTPUT); 
+  pinMode(BACK_PIN_ONE,OUTPUT); 
+  pinMode(BACK_OUTPUT_PIN,OUTPUT); 
+
+  digitalWrite(PELVIS_PIN_ONE, HIGH); 
+  digitalWrite(PELVIS_PIN_TWO, HIGH); 
+  digitalWrite(PELVIS_OUTPUT_PIN, HIGH); 
   digitalWrite(MODE_BUTTON, HIGH); 
   digitalWrite(HZ_BUTTON, HIGH); 
-  digitalWrite(6, HIGH); 
-  digitalWrite(5, HIGH); 
+  digitalWrite(BACK_PIN_TWO, HIGH); 
+  digitalWrite(BACK_PIN_ONE, HIGH); 
+  digitalWrite(BACK_OUTPUT_PIN, LOW); 
+
 
   off();
    
@@ -82,48 +91,48 @@ void deepMode(int enabled) {
 void lowPower(void) {
 
   Serial.println("Low power"); 
-  digitalWrite(12, HIGH); 
-  digitalWrite(11, HIGH); 
-  digitalWrite(OUTPUT_PIN, LOW); 
-  backLowPower();
+  digitalWrite(PELVIS_PIN_ONE, HIGH); 
+  digitalWrite(PELVIS_PIN_TWO, HIGH); 
+  digitalWrite(PELVIS_OUTPUT_PIN, LOW); 
 }
 void mediumPower(void) {
 
   Serial.println("Medium power"); 
-  digitalWrite(12, HIGH); 
-  digitalWrite(11, LOW); 
-  digitalWrite(OUTPUT_PIN, LOW); 
-  backMediumPower();
+  digitalWrite(PELVIS_PIN_ONE, HIGH); 
+  digitalWrite(PELVIS_PIN_TWO, LOW); 
+  digitalWrite(PELVIS_OUTPUT_PIN, LOW); 
 }
 
 void highPower(void) {
 
   Serial.println("High power"); 
-  digitalWrite(12, LOW); 
-  digitalWrite(11, LOW); 
-  digitalWrite(OUTPUT_PIN, LOW); 
-  backHighPower(); 
+  digitalWrite(PELVIS_PIN_ONE, LOW); 
+  digitalWrite(PELVIS_PIN_TWO, LOW); 
+  digitalWrite(PELVIS_OUTPUT_PIN, LOW); 
 }
 
 void backLowPower(void) {
 
   Serial.println("Back low power"); 
-  digitalWrite(5, HIGH); 
-  digitalWrite(6, HIGH);
+  digitalWrite(BACK_PIN_ONE, LOW); 
+  digitalWrite(BACK_PIN_TWO, LOW);
+  digitalWrite(BACK_OUTPUT_PIN, LOW); 
 }
 
 void backMediumPower(void) {
 
   Serial.println("Back medium power"); 
-  digitalWrite(5, LOW); 
-  digitalWrite(6, HIGH); 
+  digitalWrite(BACK_PIN_ONE, LOW); 
+  digitalWrite(BACK_PIN_TWO, HIGH);
+  digitalWrite(BACK_OUTPUT_PIN, LOW); 
 }
 
 void backHighPower(void) {
 
   Serial.println("Back high power"); 
-  digitalWrite(5, LOW); 
-  digitalWrite(6, LOW); 
+  digitalWrite(BACK_PIN_ONE, HIGH); 
+  digitalWrite(BACK_PIN_TWO, HIGH); 
+  digitalWrite(BACK_OUTPUT_PIN, LOW); 
 }
 
 void off(void) { 
@@ -133,11 +142,13 @@ void off(void) {
   }
   lowPower(); 
   backLowPower();
-  digitalWrite(OUTPUT_PIN, HIGH); 
+  digitalWrite(PELVIS_OUTPUT_PIN, HIGH); 
+  digitalWrite(BACK_OUTPUT_PIN, HIGH); 
   deepMode(LOW); 
 }
 void on(void) {
-  digitalWrite(OUTPUT_PIN, LOW); 
+  digitalWrite(PELVIS_OUTPUT_PIN, LOW); 
+  digitalWrite(BACK_OUTPUT_PIN, HIGH); 
 }
 
 void effectTingling(int iterations) {
@@ -406,14 +417,25 @@ void effectBackHammering(void) {
 
 void loop() {
 
-  while(Serial.available() == 0); 
-  Serial.println("Start"); 
+  Serial.println("\n-----------------------------------------------------------------------------");
+  Serial.println("Ready to begin\nPress any key, followed by return."); 
+  while(Serial.available() < 1);
 
-  effectSandwichPressure(); 
-  off(); 
+//  effectSandwichPressure(); 
+//
+//  effectBackHammering();
 
+//  effectCattleProd(); 
+
+  backLowPower(); 
+  delay(5000); 
   
-  Serial.println("Done"); 
+  backMediumPower(); 
+  delay(5000); 
+  
+  backHighPower(); 
+  delay(5000);
+
   while(1); 
   
   // Stab 3 times - 10.5 seconds
