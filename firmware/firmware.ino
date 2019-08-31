@@ -148,7 +148,7 @@ void off(void) {
 }
 void on(void) {
   digitalWrite(PELVIS_OUTPUT_PIN, LOW); 
-  digitalWrite(BACK_OUTPUT_PIN, HIGH); 
+  digitalWrite(BACK_OUTPUT_PIN, LOW); 
 }
 
 void effectTingling(int iterations) {
@@ -399,6 +399,8 @@ void effectSandwichPressure(void) {
   highPower();
   deepMode(HIGH); 
   delay(10000); 
+
+  off(); 
 }
 
 void effectBackHammering(void) {
@@ -413,31 +415,15 @@ void effectBackHammering(void) {
   switchMode(HAMMERING); 
   backHighPower(); 
   delay(3750); 
+  off(); 
 }
 
 void loop() {
-
+ 
   Serial.println("\n-----------------------------------------------------------------------------");
   Serial.println("Ready to begin\nPress any key, followed by return."); 
   while(Serial.available() < 1);
 
-//  effectSandwichPressure(); 
-//
-//  effectBackHammering();
-
-//  effectCattleProd(); 
-
-  backLowPower(); 
-  delay(5000); 
-  
-  backMediumPower(); 
-  delay(5000); 
-  
-  backHighPower(); 
-  delay(5000);
-
-  while(1); 
-  
   // Stab 3 times - 10.5 seconds
   for (int i = 0; i < 3; i++) {
     effectStab(); 
@@ -452,6 +438,17 @@ void loop() {
 
   //Deep stab for 3.5 seconds (one stab) 
   effectDeepStab(); 
+
+  // Sandwich pressure 25 seconds
+  effectSandwichPressure(); 
+
+  // Back hammering 3 times 10 seconds? 
+  for (int i = 0; i < 3; i++) {
+    effectBackHammering();
+  }
+
+  // Cattle prod for 20 seconds 
+  effectCattleProd(); 
 
   //Tearing for 20.5 seconds
   effectTearing(); 
