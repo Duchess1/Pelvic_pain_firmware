@@ -1,5 +1,4 @@
-//IASP - number one pain research in the world 
-
+#include <ArduinoJson.h>
 
 #define PELVIS_PIN_ONE 12
 #define PELVIS_PIN_TWO 11
@@ -25,9 +24,23 @@
 
 #define DEBUG 1
 
+unsigned long current_state_expiry = millis(); 
+bool next_state_received = false; 
+struct State {
+  String mode;
+  bool deep_mode;
+  String front_power;
+  String back_power;
+  unsigned long period;
+};
+
+State next_state = State{0, false, "", "", 0};
+State current_state = State{0, false, "", "", 0};
+String current_mode_str = ""; 
+
 void setup() {
+
   Serial.begin(115200);
-  
   pinMode(PELVIS_PIN_ONE,OUTPUT); 
   pinMode(PELVIS_PIN_TWO,OUTPUT); 
   pinMode(10,OUTPUT); 
@@ -90,14 +103,12 @@ void deepMode(int enabled) {
 
 void lowPower(void) {
 
-  Serial.println("Low power"); 
   digitalWrite(PELVIS_PIN_ONE, HIGH); 
   digitalWrite(PELVIS_PIN_TWO, HIGH); 
   digitalWrite(PELVIS_OUTPUT_PIN, LOW); 
 }
 void mediumPower(void) {
 
-  Serial.println("Medium power"); 
   digitalWrite(PELVIS_PIN_ONE, HIGH); 
   digitalWrite(PELVIS_PIN_TWO, LOW); 
   digitalWrite(PELVIS_OUTPUT_PIN, LOW); 
@@ -105,7 +116,6 @@ void mediumPower(void) {
 
 void highPower(void) {
 
-  Serial.println("High power"); 
   digitalWrite(PELVIS_PIN_ONE, LOW); 
   digitalWrite(PELVIS_PIN_TWO, LOW); 
   digitalWrite(PELVIS_OUTPUT_PIN, LOW); 
@@ -113,7 +123,6 @@ void highPower(void) {
 
 void backLowPower(void) {
 
-  Serial.println("Back low power"); 
   digitalWrite(BACK_PIN_ONE, LOW); 
   digitalWrite(BACK_PIN_TWO, LOW);
   digitalWrite(BACK_OUTPUT_PIN, LOW); 
@@ -121,7 +130,6 @@ void backLowPower(void) {
 
 void backMediumPower(void) {
 
-  Serial.println("Back medium power"); 
   digitalWrite(BACK_PIN_ONE, LOW); 
   digitalWrite(BACK_PIN_TWO, HIGH);
   digitalWrite(BACK_OUTPUT_PIN, LOW); 
@@ -129,17 +137,21 @@ void backMediumPower(void) {
 
 void backHighPower(void) {
 
-  Serial.println("Back high power"); 
   digitalWrite(BACK_PIN_ONE, HIGH); 
   digitalWrite(BACK_PIN_TWO, HIGH); 
   digitalWrite(BACK_OUTPUT_PIN, LOW); 
 }
 
+void backOff(void) {
+   digitalWrite(BACK_OUTPUT_PIN, HIGH);  
+}
+
+void frontOff(void) {
+    digitalWrite(PELVIS_OUTPUT_PIN, HIGH); 
+}
+
 void off(void) { 
 
-  if (DEBUG) {
-    Serial.println("Off"); 
-  }
   lowPower(); 
   backLowPower();
   digitalWrite(PELVIS_OUTPUT_PIN, HIGH); 
@@ -179,7 +191,7 @@ void effectStab(void) {
   
   off(); 
   switchMode(HAMMERING); 
-  lowPower(); 
+  highPower(); 
   delay(3000); 
   highPower();
   delay(750); 
@@ -211,18 +223,17 @@ void effectTearing(void) {
   off(); 
   switchMode(NAPRAPATHY); 
 
-  highPower(); 
-  delay(10000); 
+  lowPower(); 
+  delay(5000); 
 
-  deepMode(HIGH); 
-  delay(7000); 
-
-  mediumPower();
+  mediumPower(); 
   delay(5000); 
 
   highPower();
+  delay(5000); 
+
   deepMode(HIGH); 
-  delay(10000); 
+  delay(12000); 
 }
 
 //========================================
@@ -275,12 +286,11 @@ void effectCattleProd(void) {
   
   off(); 
   switchMode(HAMMERING); 
-  deepMode(LOW); 
+  deepMode(HIGH); 
 
  // Just front 
-  backLowPower(); 
   highPower();
-  delay(2000);  
+  delay(5000);  
 
   // off
   off(); 
@@ -288,13 +298,14 @@ void effectCattleProd(void) {
   
   // Just back
   backHighPower();
-  delay(2000); 
+  delay(5000); 
 
   // off
   off(); 
   delay(5000); 
 
-  //Front and back
+  //Front and back  
+  deepMode(LOW); 
   highPower(); 
   backHighPower(); 
   delay(5000);
@@ -304,7 +315,7 @@ void effectCattleProd(void) {
 
 //========================================
 //          effectPeriodPain
-//   High power accupuncture
+//   High power acupuncture
 //========================================
 void effectPeriodPain(void) {
 
@@ -325,7 +336,7 @@ void effectPeriodPain(void) {
   delay(2500); 
 
   deepMode(HIGH); 
-  delay(3000); 
+  delay(8000); 
   deepMode(LOW); 
 }
   
@@ -391,11 +402,11 @@ void effectSandwichPressure(void) {
   deepMode(HIGH); 
   delay(7000); 
 
-  backMediumPower(); 
+  backLowPower(); 
   mediumPower();
   delay(5000); 
 
-  backHighPower(); 
+  backMediumPower(); 
   highPower();
   deepMode(HIGH); 
   delay(10000); 
@@ -419,41 +430,119 @@ void effectBackHammering(void) {
 }
 
 void loop() {
- 
-  Serial.println("\n-----------------------------------------------------------------------------");
-  Serial.println("Ready to begin\nPress any key, followed by return."); 
-  while(Serial.available() < 1);
+  // put your main code here, to run repeatedly:
+  StaticJsonDocument<200> msg;
+  String input = ""; 
 
-  // Stab 3 times - 10.5 seconds
-  for (int i = 0; i < 3; i++) {
-    effectStab(); 
+  if (Serial.available() > 10 ) {
+
+    input = Serial.readStringUntil('\n'); 
+
+    DeserializationError error = deserializeJson(msg, input);
+  
+    // Test if parsing succeeded.
+    if (error) {
+      Serial.print("deserializeMsgPack() failed: ");
+      Serial.println(error.c_str());
+      return;
+    }
+  
+    next_state.mode         = msg["mode"].as<String>();
+    next_state.deep_mode    = msg["deep_mode"];
+    next_state.front_power  = msg["front_power"].as<String>();
+    next_state.back_power   = msg["back_power"].as<String>();
+    next_state.period       = msg["period"]; 
+    
+    next_state_received = true; 
   }
 
-  //varying degrees of period pain for 41 seconds
-  effectPeriodPain(); 
-  effectPeriodPain(); 
+  // If our current state has expired
+  if ( (millis() > current_state_expiry) && (next_state_received == true) ) {
+    // Set mode based on input
+    if (next_state.mode.indexOf("hammering") != -1) {
+      switchMode(HAMMERING); 
+    }
+    else if (next_state.mode.indexOf("acupuncture") != -1) {
+      switchMode(ACUPUNCTURE); 
+    }
+    else if (next_state.mode.indexOf("naprapathy") != -1) {
+      switchMode(NAPRAPATHY); 
+    }
+    else if (next_state.mode.indexOf("cuping") != -1) {
+      switchMode(CUPPING); 
+    }
+    else if (next_state.mode.indexOf("scraping") != -1) {
+      switchMode(SCRAPING); 
+    }
+    else if (next_state.mode.indexOf("massage") != -1) {
+      switchMode(MASSAGE); 
+    }
+    else {
+      off(); 
+      return; 
+    }
 
-  //Tearing for 20.5 seconds
-  effectTearing(); 
+    current_mode_str = next_state.mode; 
+  
+    // Set deep mode
+    if (next_state.deep_mode == true) {
+      deepMode(HIGH); 
+    }
+    else {
+      deepMode(LOW); 
+    }
 
-  //Deep stab for 3.5 seconds (one stab) 
-  effectDeepStab(); 
+    // Set front power 
+    if (next_state.front_power.indexOf("high") >= 0) {
+      highPower(); 
+    }
+    else if (next_state.front_power.indexOf("medium") >= 0) {
+      mediumPower(); 
+    }
+    else if (next_state.front_power.indexOf("low") >= 0) {
+      lowPower(); 
+    }
+    else {
+      frontOff(); 
+    }
 
-  // Sandwich pressure 25 seconds
-  effectSandwichPressure(); 
+    // Set back power 
+    if (next_state.back_power.indexOf("high") >= 0) {
+      backHighPower(); 
+    }
+    else if (next_state.back_power.indexOf("medium") >= 0) {
+      backMediumPower(); 
+    }
+    else if (next_state.back_power.indexOf("low") >= 0) {
+      backLowPower(); 
+    }
+    else {
+      backOff(); 
+    }
 
-  // Back hammering 3 times 10 seconds? 
-  for (int i = 0; i < 3; i++) {
-    effectBackHammering();
+    // Set period
+    current_state_expiry = millis() + next_state.period;  
+    
+    // Set current state
+    current_state.mode = next_state.mode; 
+    current_state.deep_mode = next_state.deep_mode; 
+    current_state.front_power = next_state.front_power; 
+    current_state.back_power = next_state.back_power;
+    current_state.period = next_state.period;
+
+    next_state_received = false; 
+
+    msg["mode"] = current_mode_str;
+    msg["deep_mode"] = current_state.deep_mode;
+    msg["front_power"] = current_state.front_power;
+    msg["back_power"] = current_state.back_power;
+    msg["period"] = current_state.period;
+
+    input = "";
+    serializeJson(msg, input);
+    Serial.println(input);
   }
-
-  // Cattle prod for 20 seconds 
-  effectCattleProd(); 
-
-  //Tearing for 20.5 seconds
-  effectTearing(); 
- 
-  off(); 
-  Serial.println("Done"); 
-  while(1); 
+  else if (millis() > current_state_expiry) {
+    off(); 
+  }
 }
