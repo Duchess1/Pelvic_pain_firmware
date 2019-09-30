@@ -6,6 +6,7 @@
 #define BACK_PIN_ONE 8
 #define BACK_PIN_TWO 7
 #define BACK_OUTPUT_PIN 6
+#define HARD_POWER_PIN 4
 
 #define ENABLED HIGH
 
@@ -37,10 +38,16 @@ struct State {
 State next_state = State{0, false, "", "", 0};
 State current_state = State{0, false, "", "", 0};
 String current_mode_str = ""; 
+int current_mode = HAMMERING;
+int is_on = false; 
 
 void setup() {
 
   Serial.begin(115200);
+
+  // Wait for haptics to turn off
+  delay(1000); 
+  
   pinMode(PELVIS_PIN_ONE,OUTPUT); 
   pinMode(PELVIS_PIN_TWO,OUTPUT); 
   pinMode(10,OUTPUT); 
@@ -50,6 +57,7 @@ void setup() {
   pinMode(BACK_PIN_TWO,OUTPUT); 
   pinMode(BACK_PIN_ONE,OUTPUT); 
   pinMode(BACK_OUTPUT_PIN,OUTPUT); 
+  pinMode(HARD_POWER_PIN, OUTPUT);
 
   digitalWrite(PELVIS_PIN_ONE, HIGH); 
   digitalWrite(PELVIS_PIN_TWO, HIGH); 
@@ -59,17 +67,29 @@ void setup() {
   digitalWrite(BACK_PIN_TWO, HIGH); 
   digitalWrite(BACK_PIN_ONE, HIGH); 
   digitalWrite(BACK_OUTPUT_PIN, LOW); 
-
+  digitalWrite(HARD_POWER_PIN, LOW);
 
   off();
-   
-  delay(1500);
-  deepMode(LOW); 
+  hardOff();     
+}
+
+void hardOff(void) {
+   digitalWrite(HARD_POWER_PIN, HIGH);
+   is_on = false;  
+}
+
+void hardOn(void) {
+
+   if (is_on == false) {
+    digitalWrite(HARD_POWER_PIN, LOW); 
+    current_mode = HAMMERING; 
+    delay(3000); 
+    is_on = true; 
+   } 
 }
 
 void switchMode(int mode) {
   // Turn device off and then on
-  static int current_mode = HAMMERING;
   int delta = 0; 
   
   if (mode > current_mode) {
@@ -154,8 +174,8 @@ void off(void) {
 
   lowPower(); 
   backLowPower();
-  digitalWrite(PELVIS_OUTPUT_PIN, HIGH); 
-  digitalWrite(BACK_OUTPUT_PIN, HIGH); 
+  backOff(); 
+  frontOff(); 
   deepMode(LOW); 
 }
 void on(void) {
@@ -430,6 +450,7 @@ void effectBackHammering(void) {
 }
 
 void loop() {
+
   // put your main code here, to run repeatedly:
   StaticJsonDocument<200> msg;
   String input = ""; 
@@ -446,7 +467,9 @@ void loop() {
       Serial.println(error.c_str());
       return;
     }
-  
+
+    hardOn(); 
+    
     next_state.mode         = msg["mode"].as<String>();
     next_state.deep_mode    = msg["deep_mode"];
     next_state.front_power  = msg["front_power"].as<String>();
@@ -457,7 +480,7 @@ void loop() {
   }
 
   // If our current state has expired
-  if ( (millis() > current_state_expiry) && (next_state_received == true) ) {
+  if (next_state_received == true) {
     // Set mode based on input
     if (next_state.mode.indexOf("hammering") != -1) {
       switchMode(HAMMERING); 
@@ -479,6 +502,7 @@ void loop() {
     }
     else {
       off(); 
+      hardOff(); 
       return; 
     }
 
