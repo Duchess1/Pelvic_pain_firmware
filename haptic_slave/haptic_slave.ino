@@ -41,6 +41,8 @@ String current_mode_str = "";
 int current_mode = HAMMERING;
 int is_on = false; 
 
+unsigned long fifteen_minutes = millis() + 900000; 
+
 void setup() {
 
   Serial.begin(115200);
@@ -85,6 +87,7 @@ void hardOn(void) {
     current_mode = HAMMERING; 
     delay(3000); 
     is_on = true; 
+    fifteen_minutes = fifteen_minutes + 900000;
    } 
 }
 
@@ -500,6 +503,11 @@ void loop() {
     else if (next_state.mode.indexOf("massage") != -1) {
       switchMode(MASSAGE); 
     }
+    else if (next_state.mode.indexOf("setup") != -1) {
+      hardOn();
+      off(); 
+      return; 
+    }
     else {
       off(); 
       hardOff(); 
@@ -568,5 +576,11 @@ void loop() {
   }
   else if (millis() > current_state_expiry) {
     off(); 
+  }
+
+  if (millis() > fifteen_minutes && is_on == true) {
+    hardOff(); 
+    delay(1000); 
+    hardOn();
   }
 }
